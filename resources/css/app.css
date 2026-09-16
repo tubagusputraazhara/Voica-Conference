@@ -1,0 +1,58 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* ─── MeshGradient: CSS-only GPU-accelerated animations ──────────────────────
+   Replaces framer-motion infinite JS animations which caused constant GPU overload.
+   transform: translate3d() offloads rendering to GPU hardware layer.
+   will-change: transform hints browser to promote element to its own compositor layer.
+────────────────────────────────────────────────────────────────────────────── */
+
+.mesh-orb {
+    will-change: transform;
+}
+
+@keyframes meshFloat1 {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50%       { transform: translate3d(100px, 50px, 0) scale(1.2); }
+}
+
+@keyframes meshFloat2 {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1.2); }
+    50%       { transform: translate3d(-80px, 100px, 0) scale(1); }
+}
+
+@keyframes meshFloat3 {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50%       { transform: translate3d(50px, -100px, 0) scale(1.1); }
+}
+
+.mesh-orb-1 { animation: meshFloat1 20s linear infinite; }
+.mesh-orb-2 { animation: meshFloat2 25s linear infinite; }
+.mesh-orb-3 { animation: meshFloat3 18s linear infinite; }
+
+/* Noise texture — prefer local file at /assets/noise.png to avoid CDN request */
+.noise-texture {
+    background-image: url('/assets/noise.png');
+    /* Fallback to data URI pattern if file not found */
+    background-repeat: repeat;
+    background-size: 200px 200px;
+}
+
+/* ─── Voice Button: Pulsing mic indicator (replaces lost SpeechRecognition visual) */
+@keyframes voicePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.4); }
+    50%       { box-shadow: 0 0 0 12px rgba(20, 184, 166, 0); }
+}
+
+.voice-listening {
+    animation: voicePulse 1.5s ease-in-out infinite;
+}

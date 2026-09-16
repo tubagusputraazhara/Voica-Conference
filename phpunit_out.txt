@@ -1,0 +1,33 @@
+PHPUnit 11.5.50 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.12
+Configuration: C:\xampp\htdocs\voica\proter\phpunit.xml
+
+FFF                                                                 3 / 3 (100%)
+
+Time: 00:00.449, Memory: 50.00 MB
+
+There were 3 failures:
+
+1) Tests\Feature\Services\NLPParserServiceTest::test_can_parse_simple_pengeluaran
+Failed asserting that 1000.0 matches expected 25000.
+
+C:\xampp\htdocs\voica\proter\tests\Feature\Services\NLPParserServiceTest.php:33
+
+2) Tests\Feature\Services\NLPParserServiceTest::test_can_parse_pemasukan
+Failed asserting that 1000000.0 matches expected 5000000.
+
+C:\xampp\htdocs\voica\proter\tests\Feature\Services\NLPParserServiceTest.php:46
+
+3) Tests\Feature\Services\NLPParserServiceTest::test_can_parse_mixed_number_formats
+Failed asserting that two strings are equal.
+--- Expected
++++ Actual
+@@ @@
+-'Tagihan'
++'Kebutuhan'
+
+C:\xampp\htdocs\voica\proter\tests\Feature\Services\NLPParserServiceTest.php:57
+
+FAILURES!
+Tests: 3, Assertions: 11, Failures: 3.
