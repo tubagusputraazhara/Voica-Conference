@@ -19,9 +19,10 @@ class VoiceEnrollmentService
      *
      * @param User $user
      * @param string $audioPath Absolute path to the source audio
+     * @param string $model Speaker-verification backbone: 'ecapa' | 'resnet34' | 'wavlm'
      * @return VoiceVerificationResult
      */
-    public function enroll(User $user, string $audioPath): VoiceVerificationResult
+    public function enroll(User $user, string $audioPath, string $model = 'ecapa'): VoiceVerificationResult
     {
         try {
             // Normalize to forward slashes (prevents Errno 22 on Windows)
@@ -31,8 +32,8 @@ class VoiceEnrollmentService
             $wavPath = $this->audioService->ensureValidWav($audioPath);
 
             // 2. Execute Enrollment via Engine
-            Log::info("Enrolling voice for user: " . ($user->id ?? 'new_user') . " using file: {$wavPath}");
-            $result = $this->processorService->execute('enroll', [$wavPath]);
+            Log::info("Enrolling voice for user: " . ($user->id ?? 'new_user') . " using file: {$wavPath} (model: {$model})");
+            $result = $this->processorService->execute('enroll', [$wavPath, $model]);
 
             if ($result->success) {
                 // 3. Move file to permanent storage
@@ -51,6 +52,9 @@ class VoiceEnrollmentService
                 $user->voice_path = $storagePath;
                 $user->voice_embedding = $result->extra['voice_embedding'] ?? null;
                 $user->voice_enrolled_at = now();
+                // Backbone yang dipakai -- verifikasi login WAJIB pakai model yang sama
+                // karena embedding antar arsitektur tidak comparable.
+                $user->voice_model = $model;
 
                 // If user already exists, save immediately
                 if ($user->exists) {

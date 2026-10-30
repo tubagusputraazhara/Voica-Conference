@@ -134,6 +134,7 @@ return [
             'level' => 'debug',
             'days' => 30, // Keep 30 days for analysis
             'replace_placeholders' => true,
+            'tap' => [App\Logging\UseJakartaTime::class], // timestamps in WIB
         ],
 
     ],

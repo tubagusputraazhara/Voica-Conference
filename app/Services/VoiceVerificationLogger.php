@@ -15,20 +15,29 @@ use Illuminate\Support\Facades\Auth;
 class VoiceVerificationLogger
 {
     /**
-     * Log hasil verifikasi suara
+     * Log timestamps (file and voice_verification_logs.created_at) are WIB, not the app's UTC
      */
-    public static function log(\App\DTOs\VoiceVerificationResult|array $data): void
+    public const TIMEZONE = 'Asia/Jakarta';
+
+    /**
+     * Log hasil verifikasi suara
+     *
+     * @param array $context Konteks dari controller: user_id (akun yang dicoba, sebelum login),
+     *                       action, transaction_amount. VoiceVerificationResult bersifat
+     *                       readonly, jadi konteks tidak bisa ditulis ke $result->extra.
+     */
+    public static function log(\App\DTOs\VoiceVerificationResult|array $data, array $context = []): void
     {
         if (is_array($data)) {
             $data = \App\DTOs\VoiceVerificationResult::fromArray($data);
         }
 
-        $userId = Auth::id() ?? ($data->extra['user_id'] ?? null);
+        $userId = Auth::id() ?? $context['user_id'] ?? $data->extra['user_id'] ?? null;
 
         $logData = [
             'user_id' => $userId,
-            'timestamp' => now()->toDateTimeString(),
-            'action' => $data->extra['action'] ?? 'voice_verification',
+            'timestamp' => now(self::TIMEZONE)->toDateTimeString(),
+            'action' => $context['action'] ?? $data->extra['action'] ?? 'voice_verification',
             'success' => $data->success,
 
             // Layer 1: STT (jika ada)
@@ -40,6 +49,7 @@ class VoiceVerificationLogger
             'aasist_bonafide' => $data->liveness['bonafide_probability'] ?? null,
             'aasist_spoof' => $data->liveness['spoof_probability'] ?? null,
             'aasist_security_level' => $data->liveness['security_level'] ?? null,
+            'aasist_model' => $data->liveness['weights'] ?? null,
 
             // Layer 3: ECAPA-TDNN
             'ecapa_similarity' => $data->similarity,
@@ -51,7 +61,7 @@ class VoiceVerificationLogger
             'is_match' => $data->isMatch,
             'rejected_reason' => $data->extra['rejected_reason'] ?? null,
             'rejected_layer' => $data->extra['rejected_layer'] ?? null,
-            'transaction_amount' => $data->extra['transaction_amount'] ?? null,
+            'transaction_amount' => $context['transaction_amount'] ?? $data->extra['transaction_amount'] ?? null,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ];
@@ -70,13 +80,21 @@ class VoiceVerificationLogger
                 'action' => $logData['action'],
                 'success' => $logData['success'],
                 'is_match' => $logData['is_match'],
+                'stt_transcript' => $logData['stt_transcript'],
+                'stt_expected' => $logData['stt_expected'],
+                'stt_similarity' => $logData['stt_similarity'],
                 'aasist_bonafide' => $logData['aasist_bonafide'],
+                'aasist_spoof' => $logData['aasist_spoof'],
+                'aasist_security_level' => $logData['aasist_security_level'],
+                'aasist_model' => $logData['aasist_model'],
                 'ecapa_similarity' => $logData['ecapa_similarity_pct'],
                 'ecapa_threshold' => $logData['ecapa_threshold_pct'],
                 'rejected_reason' => $logData['rejected_reason'],
+                'rejected_layer' => $logData['rejected_layer'],
                 'transaction_amount' => $logData['transaction_amount'],
                 'ip_address' => $logData['ip_address'],
-                'created_at' => now(),
+                'user_agent' => $logData['user_agent'] !== null ? mb_substr($logData['user_agent'], 0, 512) : null,
+                'created_at' => $logData['timestamp'],
             ]);
         } catch (\Exception $e) {
             // Table might not exist yet, just log to file
@@ -92,7 +110,7 @@ class VoiceVerificationLogger
         try {
             $stats = DB::table('voice_verification_logs')
                 ->where('user_id', $userId)
-                ->where('created_at', '>=', now()->subDays($days))
+                ->where('created_at', '>=', now(self::TIMEZONE)->subDays($days)->toDateTimeString())
                 ->selectRaw('
                     COUNT(*) as total_attempts,
                     SUM(CASE WHEN is_match = 1 THEN 1 ELSE 0 END) as successful,

@@ -45,6 +45,8 @@ Route::middleware('auth')->group(function () {
         ->name('settings');
     Route::post('/settings/update', [App\Http\Controllers\AccountSettingsController::class, 'update'])
         ->name('settings.update');
+    Route::post('/settings/voice-model', [App\Http\Controllers\AccountSettingsController::class, 'updateVoiceModel'])
+        ->name('settings.voice-model.update');
 
     // Budgeting
     Route::get('/budgeting', [App\Http\Controllers\BudgetController::class, 'index'])

@@ -19,6 +19,7 @@
 /storage/*.key
 /storage/pail
 /vendor
+pretrained_models/
 Homestead.json
 Homestead.yaml
 Thumbs.db
@@ -30,6 +31,7 @@ Thumbs.db
 
 # Local Python & Data
 .venv/
+.venv-train/
 datasets/
 __pycache__/
 *.pyc

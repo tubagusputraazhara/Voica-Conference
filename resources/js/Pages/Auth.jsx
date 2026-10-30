@@ -24,7 +24,18 @@ export default function Auth({ mode = 'login', status: propStatus }) {
         password: '',
         password_confirmation: '',
         voice_audio_base64: '',
+        voice_model: 'ecapa',
     });
+
+    // Model verifikasi suara yang bisa dipilih user saat mendaftar.
+    // Model yang dipilih di sini TERIKAT ke akun (dipakai lagi otomatis
+    // setiap login suara), karena embedding antar model tidak bisa
+    // dibandingkan satu sama lain.
+    const VOICE_MODELS = [
+        { value: 'ecapa', label: 'ECAPA-TDNN', desc: 'Baseline — seimbang & sudah teruji' },
+        { value: 'resnet34', label: 'ResNet-34', desc: 'Ringan & cepat' },
+        { value: 'wavlm', label: 'WavLM', desc: 'Paling akurat, lebih berat' },
+    ];
 
     // Validasi Biodata Register (4 field wajib terisi & password cocok)
     const bioBioValid =
@@ -349,6 +360,33 @@ export default function Auth({ mode = 'login', status: propStatus }) {
                                             disabled={processing}
                                         />
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Pilihan Model Verifikasi Suara (Register saja) */}
+                            {authMode === 'register' && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Model Verifikasi Suara</label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        {VOICE_MODELS.map((m) => (
+                                            <button
+                                                key={m.value}
+                                                type="button"
+                                                onClick={() => setData('voice_model', m.value)}
+                                                disabled={processing}
+                                                className={`p-3 rounded-xl border text-left transition-all ${
+                                                    data.voice_model === m.value
+                                                        ? 'border-teal-500 bg-teal-50 ring-2 ring-teal-500/30'
+                                                        : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                                                }`}
+                                            >
+                                                <span className="block text-xs font-bold text-slate-800">{m.label}</span>
+                                                <span className="block text-[10px] text-slate-400 mt-0.5 leading-tight">{m.desc}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 ml-1">Model ini akan dipakai otomatis setiap Anda login pakai suara.</p>
+                                    {errors.voice_model && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{errors.voice_model}</p>}
                                 </div>
                             )}
 

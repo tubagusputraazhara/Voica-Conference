@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Crypt;
  * @property string|null $voice_path
  * @property array|null $voice_embedding (Encrypted at rest - AES-256)
  * @property \Carbon\Carbon|null $voice_enrolled_at
+ * @property string|null $voice_model
  */
 class User extends Authenticatable
 {
@@ -37,6 +38,7 @@ class User extends Authenticatable
         'voice_path',
         'voice_embedding',
         'voice_enrolled_at',
+        'voice_model',
     ];
 
     /**
@@ -103,13 +105,18 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user has completed voice enrollment
+     * Check if user has completed voice enrollment.
+     *
+     * voice_model wajib terisi -- user lama (pre-multi-model) yang
+     * voice_model-nya NULL dianggap belum enroll dan harus enroll ulang,
+     * karena embedding hanya comparable dengan verifikasi model yang sama.
      */
     public function hasVoiceEnrolled(): bool
     {
         return !empty($this->voice_path) &&
             !empty($this->voice_embedding) &&
-            !is_null($this->voice_enrolled_at);
+            !is_null($this->voice_enrolled_at) &&
+            !empty($this->voice_model);
     }
 
     /**

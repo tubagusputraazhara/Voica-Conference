@@ -11,6 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Some databases (e.g. hosting) already got this column outside migrations;
+        // adding it again fails with "Duplicate column name 'user_id'".
+        if (Schema::hasColumn('goals', 'user_id')) {
+            return;
+        }
+
         Schema::table('goals', function (Blueprint $table) {
             // Add as nullable first so existing rows don't violate NOT NULL constraint
             $table->foreignId('user_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
