@@ -6,9 +6,9 @@ echo ============================================================
 echo  Voica AI Engine — Starting...
 echo ============================================================
 echo.
-echo  Server: http://127.0.0.1:8001
-echo  Health: http://127.0.0.1:8001/health
-echo  Docs:   http://127.0.0.1:8001/docs
+echo  Server: http://127.0.0.1:8002
+echo  Health: http://127.0.0.1:8002/health
+echo  Docs:   http://127.0.0.1:8002/docs
 echo.
 echo  Models yang akan dimuat:
 echo   - ECAPA-TDNN  — speaker verification
@@ -44,6 +44,6 @@ if errorlevel 1 (
 )
 
 :: Start api_server.py (FastAPI yang sudah ada)
-python -m uvicorn scripts.api_server:app --host 127.0.0.1 --port 8001 --reload
+python -m uvicorn scripts.api_server:app --host 127.0.0.1 --port 8002 --reload
 
 pause

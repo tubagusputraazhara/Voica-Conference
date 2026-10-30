@@ -1,0 +1,16 @@
+# Dependensi tambahan untuk eksperimen perbandingan speaker verification
+# (Model 2: ResNet-34 via pyannote.audio, Model 3: WavLM via transformers)
+#
+# JANGAN gabungkan ke requirements.txt utama — file ini terpisah supaya
+# environment ECAPA-TDNN (scripts/voice_processor_ecapa.py) yang sudah
+# stabil untuk paper tidak terpengaruh oleh dependency tambahan yang berat.
+#
+# Dicek 2026-09-16: instalasi ini TIDAK meng-upgrade/downgrade torch,
+# torchaudio, numpy, atau speechbrain yang sudah terpasang (torch 2.12.1,
+# torchaudio 2.11.0, speechbrain 0.5.15). Lihat catatan kompatibilitas di
+# scripts/eval/README.md (atau riwayat percakapan) untuk detail risiko
+# pyannote.audio 4.x -> torchcodec -> FFmpeg di Windows.
+
+pyannote.audio>=4.0.7
+transformers>=5.17.0
+psutil>=7.0.0

@@ -442,14 +442,15 @@ def verify_secure(test_audio_path: str, enrolled_embedding: list, base_threshold
     Layer 1: Anti-spoofing check (AASIST)
     Layer 2: Speaker verification (ECAPA-TDNN)
     
-    ADAPTIVE LOGIC:
+    ADAPTIVE LOGIC (zone comes from antispoofing/aasist_engine.py; the cutoffs below are its
+    defaults for every weights file, overridable via AASIST_BLOCK_BELOW / AASIST_SAFE_FROM):
     - If AASIST > 89%: Standard Security (uses base_threshold from PHP)
     - If AASIST 8.75-89%: High Security (base_threshold + 0.10) - "Grey Zone"
     - If AASIST < 8.75%: BLOCKED (Spoof detected)
     """
     try:
-        # Import anti-spoofing module
-        from anti_spoofing import check_liveness
+        # Import anti-spoofing module (shared across ECAPA/ResNet-34/WavLM)
+        from antispoofing.aasist_engine import check_liveness
         
         # ============================================
         # LAYER 1: ANTI-SPOOFING CHECK (AASIST)
@@ -466,20 +467,23 @@ def verify_secure(test_audio_path: str, enrolled_embedding: list, base_threshold
         
         bonafide_prob = liveness_result.get('bonafide_probability', 0)
         spoof_prob = liveness_result.get('spoof_probability', 0)
+        # The zone cutoffs depend on which AASIST weights are loaded
+        zone = liveness_result.get('zone') or (
+            'safe' if bonafide_prob >= 89.0 else 'grey' if bonafide_prob >= 8.75 else 'blocked')
         
         # Determine Security Level based on AASIST Score
         current_threshold = base_threshold
         security_level = "standard"
         is_spoof_blocked = False
         
-        if bonafide_prob >= 89.0:
+        if zone == 'safe':
             # ZONE 1: SAFE (High Confidence Bonafide)
             # Only HD studio quality or very clean mic passes here.
             print(f"Layer 1: SAFE (Bonafide: {bonafide_prob}%) -> Standard Threshold ({base_threshold})", file=sys.stderr)
             security_level = "standard"
             current_threshold = base_threshold  # Use PHP threshold as-is
             
-        elif bonafide_prob >= 8.75:
+        elif zone == 'grey':
             # ZONE 2: GREY (Review Mode - Risk Based Auth)
             # Includes:
             # - Real User on Web Mic
@@ -508,7 +512,8 @@ def verify_secure(test_audio_path: str, enrolled_embedding: list, base_threshold
                     'is_bonafide': False,  # Force false
                     'bonafide_probability': bonafide_prob,
                     'spoof_probability': spoof_prob,
-                    'security_level': 'blocked'
+                    'security_level': 'blocked',
+                    'weights': liveness_result.get('weights')  # which AASIST weights decided
                 },
                 'model': 'AASIST + ECAPA-TDNN',
                 'device': DEVICE
@@ -551,7 +556,8 @@ def verify_secure(test_audio_path: str, enrolled_embedding: list, base_threshold
                 'is_bonafide': True, # Passed adaptive check
                 'bonafide_probability': bonafide_prob,
                 'spoof_probability': spoof_prob,
-                'security_level': security_level
+                'security_level': security_level,
+                'weights': liveness_result.get('weights')  # which AASIST weights decided
             },
             'model': 'AASIST + ECAPA-TDNN',
             'device': DEVICE

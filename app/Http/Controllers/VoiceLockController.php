@@ -92,9 +92,8 @@ class VoiceLockController extends Controller
                 'challenge_text' => $challenge['text']
             ]);
 
-            // Add context for logger
-            $result->extra['action'] = 'voice_lock';
-            VoiceVerificationLogger::log($result);
+            // Add context for logger ($result is a readonly DTO, so it cannot carry it)
+            VoiceVerificationLogger::log($result, ['action' => 'voice_lock']);
 
             if (!$result->success) {
                 return back()->withErrors(['voice_audio' => $result->error]);

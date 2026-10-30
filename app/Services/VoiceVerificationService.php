@@ -32,6 +32,16 @@ class VoiceVerificationService
                 return VoiceVerificationResult::failure("User has no enrolled voice features.");
             }
 
+            // Model HARUS ikut yang tersimpan di user (dari saat enroll), bukan pilihan
+            // bebas saat verifikasi -- embedding antar backbone tidak comparable.
+            // User lama (pre-multi-model) yang voice_model-nya NULL wajib enroll ulang.
+            $model = $user->voice_model;
+            if (!$model) {
+                return VoiceVerificationResult::failure(
+                    "Akun ini perlu mendaftarkan ulang suaranya (fitur pemilihan model verifikasi terbaru)."
+                );
+            }
+
             // Normalize to forward slashes (prevents Errno 22 on Windows)
             $audioPath = str_replace('\\', '/', $audioPath);
 
@@ -41,12 +51,12 @@ class VoiceVerificationService
             // 2. Determine Command
             if ($challengeText) {
                 $command = 'verify_with_challenge';
-                $args = [$wavPath, json_encode($enrolledFeatures), $challengeText, $threshold];
-                Log::info("Running 3-Layer Secure Verification (STT + AASIST + ECAPA) for user: {$user->id}");
+                $args = [$wavPath, json_encode($enrolledFeatures), $challengeText, $threshold, $model];
+                Log::info("Running 3-Layer Secure Verification (STT + AASIST + {$model}) for user: {$user->id}");
             } else {
                 $command = 'verify_secure';
-                $args = [$wavPath, json_encode($enrolledFeatures), $threshold];
-                Log::info("Running 2-Layer Secure Verification (AASIST + ECAPA) for user: {$user->id}");
+                $args = [$wavPath, json_encode($enrolledFeatures), $threshold, $model];
+                Log::info("Running 2-Layer Secure Verification (AASIST + {$model}) for user: {$user->id}");
             }
 
             // 3. Execute Verification

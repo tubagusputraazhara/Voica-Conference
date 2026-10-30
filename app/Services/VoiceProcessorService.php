@@ -29,7 +29,8 @@ class VoiceProcessorService
                 case 'enroll':
                     $endpoint = '/enroll';
                     $payload = [
-                        'audio_path' => $args[0]
+                        'audio_path' => $args[0],
+                        'model' => $args[1] ?? 'ecapa',
                     ];
                     break;
 
@@ -38,7 +39,8 @@ class VoiceProcessorService
                     $payload = [
                         'test_audio_path' => $args[0],
                         'enrolled_embedding' => is_string($args[1]) ? json_decode($args[1], true) : $args[1],
-                        'threshold' => isset($args[2]) ? (float)$args[2] : 0.25
+                        'threshold' => isset($args[2]) ? (float)$args[2] : 0.25,
+                        'model' => $args[3] ?? 'ecapa',
                     ];
                     break;
 
@@ -47,7 +49,8 @@ class VoiceProcessorService
                     $payload = [
                         'test_audio_path' => $args[0],
                         'enrolled_embedding' => is_string($args[1]) ? json_decode($args[1], true) : $args[1],
-                        'threshold' => isset($args[2]) ? (float)$args[2] : 0.35
+                        'threshold' => isset($args[2]) ? (float)$args[2] : 0.35,
+                        'model' => $args[3] ?? 'ecapa',
                     ];
                     break;
 
@@ -57,7 +60,8 @@ class VoiceProcessorService
                         'test_audio_path' => $args[0],
                         'enrolled_embedding' => is_string($args[1]) ? json_decode($args[1], true) : $args[1],
                         'expected_text' => $args[2],
-                        'threshold' => isset($args[3]) ? (float)$args[3] : 0.35
+                        'threshold' => isset($args[3]) ? (float)$args[3] : 0.35,
+                        'model' => $args[4] ?? 'ecapa',
                     ];
                     break;
 

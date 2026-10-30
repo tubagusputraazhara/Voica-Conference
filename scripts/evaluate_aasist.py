@@ -2,9 +2,9 @@ import os
 import sys
 import argparse
 
-# Add current directory to path to import anti_spoofing
+# Add current directory to path to import antispoofing package
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from anti_spoofing import get_detector
+from antispoofing.aasist_engine import get_detector
 
 def calculate_eer_manual(y_true, y_scores):
     thresholds = sorted(list(set(y_scores)), reverse=True)

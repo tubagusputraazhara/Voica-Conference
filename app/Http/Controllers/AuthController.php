@@ -49,6 +49,7 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::min(8)],
             'voice_audio_file' => ['nullable', 'file', 'mimes:wav,webm,ogg,mp3,mp4,m4a,aac,x-m4a', 'max:10240'],
             'voice_audio_base64' => ['nullable', 'string'],
+            'voice_model' => ['required', 'string', 'in:ecapa,resnet34,wavlm'],
         ], [
             'phone.unique' => 'Nomor telepon sudah terdaftar',
             'password.confirmed' => 'Konfirmasi kata sandi tidak cocok',
@@ -77,7 +78,7 @@ class AuthController extends Controller
             ]);
 
             // Delegate enrollment to Service
-            $enrollmentResult = $this->enrollmentService->enroll($user, $audioPath);
+            $enrollmentResult = $this->enrollmentService->enroll($user, $audioPath, $request->voice_model);
 
             if (!$enrollmentResult->success) {
                 return back()->withErrors(['voice_audio' => $enrollmentResult->error])->withInput()->with('mode', 'register');
@@ -142,8 +143,8 @@ class AuthController extends Controller
                 'threshold' => $threshold
             ]);
 
-            // Log for analytics
-            VoiceVerificationLogger::log($result);
+            // Log for analytics (nobody is logged in yet, so pass the account being tried)
+            VoiceVerificationLogger::log($result, ['user_id' => $user->id]);
 
             if (!$result->success) {
                 return back()->withErrors(['voice_audio' => 'Error: ' . $result->error])->with('mode', 'login');

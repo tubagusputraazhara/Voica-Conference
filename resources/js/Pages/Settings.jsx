@@ -14,6 +14,7 @@ import {
 
 import ProfileForm from '../Components/Settings/ProfileForm';
 import PasswordForm from '../Components/Settings/PasswordForm';
+import VoiceModelForm from '../Components/Settings/VoiceModelForm';
 
 export default function Settings({ user }) {
     const fileInputRef = useRef(null);
@@ -137,19 +138,19 @@ export default function Settings({ user }) {
                     </div>
                 </motion.div>
 
-                <form onSubmit={submit}>
-                    <motion.div 
-                        initial="hidden"
-                        animate="visible"
-                        variants={{
-                            visible: {
-                                transition: {
-                                    staggerChildren: 0.1
-                                }
+                <motion.div 
+                    initial="hidden"
+                    animate="visible"
+                    variants={{
+                        visible: {
+                            transition: {
+                                staggerChildren: 0.1
                             }
-                        }}
-                        className="space-y-10"
-                    >
+                        }
+                    }}
+                    className="space-y-10"
+                >
+                    <form onSubmit={submit} className="space-y-10">
                     {/* General Settings */}
                     <ProfileForm data={data} setData={setData} errors={errors} />
 
@@ -191,6 +192,10 @@ export default function Settings({ user }) {
                             <span className="relative z-10">{processing ? 'Memproses...' : 'Simpan Perubahan'}</span>
                         </motion.button>
                     </motion.div>
+                    </form>
+
+                    {/* Ganti Model Verifikasi Suara (form terpisah: butuh audio blob, tidak bisa nested di <form> utama) */}
+                    <VoiceModelForm user={user} />
 
                     {/* Manual Book Section */}
                     <motion.div 
@@ -230,8 +235,7 @@ export default function Settings({ user }) {
                             Keluar dari Sesi
                         </Link>
                     </motion.div>
-                    </motion.div>
-                </form>
+                </motion.div>
             </div>
         </AuthLayout>
     );

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from anti_spoofing import get_detector
+from antispoofing.aasist_engine import get_detector
 from voice_processor_ecapa import get_verifier
 from evaluate_aasist import calculate_eer_manual
 

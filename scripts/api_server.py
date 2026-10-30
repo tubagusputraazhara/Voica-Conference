@@ -18,21 +18,38 @@ print(f"Using FFmpeg: {FFMPEG_BIN}", file=sys.stderr)
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Literal
 import uvicorn
 
 # Ensure the script directory is in path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Import the actual processing functions
-from voice_processor_ecapa import (
-    get_verifier,
-    enroll_voice,
-    verify_voice,
-    verify_secure,
-    verify_secure_with_challenge,
-    compare_files,
-    DEVICE
-)
+# Import the ECAPA-TDNN module eagerly (default/most-used model, kept warm
+# in RAM at startup like before). ResNet-34 / WavLM are lazy-loaded on
+# first request via get_model_module() below -- they pull in heavy extra
+# deps (pyannote.audio, transformers) that shouldn't be paid for unless
+# actually used.
+import voice_processor_ecapa
+from voice_processor_ecapa import get_verifier, DEVICE
+
+ModelName = Literal['ecapa', 'resnet34', 'wavlm']
+
+_MODEL_MODULES = {
+    'ecapa': voice_processor_ecapa,
+}
+
+
+def get_model_module(model: str):
+    """Lazily import + return the voice_processor_* module for `model`."""
+    if model not in _MODEL_MODULES:
+        if model == 'resnet34':
+            import voice_processor_resnet34 as module
+        elif model == 'wavlm':
+            import voice_processor_wavlm as module
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown model: {model}")
+        _MODEL_MODULES[model] = module
+    return _MODEL_MODULES[model]
 
 # ── Faster Whisper (Offline STT) ─────────────────────────────────
 from faster_whisper import WhisperModel
@@ -50,7 +67,7 @@ def get_whisper_model():
     return _whisper_model
 
 # Optional: Load anti_spoofing detector at startup as well
-from anti_spoofing import get_detector
+from antispoofing.aasist_engine import get_detector
 
 
 @asynccontextmanager
@@ -84,7 +101,11 @@ app = FastAPI(
 # Allow requests from Laravel (localhost)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "http://127.0.0.1:80", "http://localhost"],
+    allow_origins=[
+        "http://127.0.0.1:8081", "http://localhost:8081",  # voica_conference (this repo)
+        "http://127.0.0.1:8000", "http://localhost:8000",
+        "http://127.0.0.1:80", "http://localhost",
+    ],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
@@ -93,22 +114,26 @@ app.add_middleware(
 
 class EnrollRequest(BaseModel):
     audio_path: str
+    model: ModelName = 'ecapa'
 
 class VerifyRequest(BaseModel):
     test_audio_path: str
     enrolled_embedding: List[float]
     threshold: float = 0.25
+    model: ModelName = 'ecapa'
 
 class VerifySecureRequest(BaseModel):
     test_audio_path: str
     enrolled_embedding: List[float]
     threshold: float = 0.35
+    model: ModelName = 'ecapa'
 
 class VerifyChallengeRequest(BaseModel):
     test_audio_path: str
     enrolled_embedding: List[float]
     expected_text: str
     threshold: float = 0.35
+    model: ModelName = 'ecapa'
 
 class TranscribeRequest(BaseModel):
     audio_path: str
@@ -124,48 +149,54 @@ def health_check():
         "status": "ok",
         "device": DEVICE,
         "models": {
-            "ecapa_tdnn": True,
+            "loaded": list(_MODEL_MODULES.keys()),
+            "available": ['ecapa', 'resnet34', 'wavlm'],
             "aasist": True,
         },
-        "message": "Models are loaded in RAM and ready for instant inference."
+        "message": "Models are loaded in RAM and ready for instant inference. "
+                    "ResNet-34/WavLM load lazily on first request for that model."
     }
 
 @app.post("/enroll")
 def enroll(req: EnrollRequest):
     if not os.path.exists(req.audio_path):
         raise HTTPException(status_code=400, detail="Audio file not found")
-        
-    result = enroll_voice(req.audio_path)
+
+    module = get_model_module(req.model)
+    result = module.enroll_voice(req.audio_path)
     if not result.get('success', False):
         raise HTTPException(status_code=500, detail=result)
-        
+
     return result
 
 @app.post("/verify")
 def verify(req: VerifyRequest):
     if not os.path.exists(req.test_audio_path):
         raise HTTPException(status_code=400, detail="Test audio file not found")
-        
-    result = verify_voice(req.test_audio_path, req.enrolled_embedding, req.threshold)
+
+    module = get_model_module(req.model)
+    result = module.verify_voice(req.test_audio_path, req.enrolled_embedding, req.threshold)
     return result
 
 @app.post("/verify-secure")
 def verify_secure_endpoint(req: VerifySecureRequest):
     if not os.path.exists(req.test_audio_path):
         raise HTTPException(status_code=400, detail="Test audio file not found")
-        
-    result = verify_secure(req.test_audio_path, req.enrolled_embedding, req.threshold)
+
+    module = get_model_module(req.model)
+    result = module.verify_secure(req.test_audio_path, req.enrolled_embedding, req.threshold)
     return result
 
 @app.post("/verify-with-challenge")
 def verify_with_challenge_endpoint(req: VerifyChallengeRequest):
     if not os.path.exists(req.test_audio_path):
         raise HTTPException(status_code=400, detail="Test audio file not found")
-        
-    result = verify_secure_with_challenge(
-        req.test_audio_path, 
-        req.enrolled_embedding, 
-        req.expected_text, 
+
+    module = get_model_module(req.model)
+    result = module.verify_secure_with_challenge(
+        req.test_audio_path,
+        req.enrolled_embedding,
+        req.expected_text,
         req.threshold
     )
     return result
@@ -254,4 +285,4 @@ async def transcribe_upload_endpoint(audio: UploadFile = File(...), language: st
 
 
 if __name__ == "__main__":
-    uvicorn.run("api_server:app", host="127.0.0.1", port=8001, reload=True)
+    uvicorn.run("api_server:app", host="127.0.0.1", port=8002, reload=True)

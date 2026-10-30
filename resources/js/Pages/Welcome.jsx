@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -19,17 +19,40 @@ import {
 
 export default function Welcome() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [navHidden, setNavHidden] = useState(false);
+
+    // Auto-hide navbar: sembunyi saat scroll ke bawah, muncul lagi saat scroll ke atas
+    useEffect(() => {
+        let lastY = window.scrollY;
+        const onScroll = () => {
+            const y = window.scrollY;
+            if (Math.abs(y - lastY) < 8) return;
+            setNavHidden(y > lastY && y > 80);
+            lastY = y;
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     return (
         <div className="min-h-screen bg-slate-50 font-inter text-slate-900 selection:bg-teal-100 selection:text-teal-900 scroll-smooth">
             <Head title="VOICA - Catat Keuangan Cukup dengan Bicara" />
 
             {/* 1. NAVBAR SEDERHANA & STICKY */}
-            <nav className="sticky top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 transition-all">
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    {/* Logo Kiri */}
-                    <Link href="/" className="flex items-center">
-                        <img src="/images/voica-logo.png" alt="VOICA" className="h-10 md:h-12 w-auto" />
+            <nav className={`sticky top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 transition-transform duration-300 ${navHidden && !mobileMenuOpen ? '-translate-y-full' : 'translate-y-0'}`}>
+                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-3">
+                    {/* Tombol Menu Mobile (kiri) */}
+                    <button
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="md:hidden -ml-2 p-2 text-slate-600 hover:text-slate-900 rounded-lg"
+                        aria-label="Menu"
+                    >
+                        {mobileMenuOpen ? <CloseIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
+                    </button>
+
+                    {/* Logo: kiri di desktop, kanan di mobile */}
+                    <Link href="/" className="flex items-center ml-auto md:ml-0">
+                        <img src="/images/voica-logo-wordmark.png" alt="VOICA" className="h-7 md:h-11 w-auto" />
                     </Link>
 
                     {/* Nav Desktop Tengah/Kanan */}
@@ -55,22 +78,13 @@ export default function Welcome() {
                         </Link>
                     </div>
 
-                    {/* Mobile Menu Action */}
-                    <div className="flex md:hidden items-center gap-3">
-                        <Link 
-                            href="/login" 
-                            className="px-3.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-                        >
-                            Masuk
-                        </Link>
-                        <button 
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="p-2 text-slate-600 hover:text-slate-900 rounded-lg"
-                            aria-label="Menu"
-                        >
-                            {mobileMenuOpen ? <CloseIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
-                        </button>
-                    </div>
+                    {/* Masuk Mobile (kanan) */}
+                    <Link
+                        href="/login"
+                        className="md:hidden h-8 inline-flex items-center px-3.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                    >
+                        Masuk
+                    </Link>
                 </div>
 
                 {/* Mobile Drawer */}
@@ -505,7 +519,7 @@ export default function Welcome() {
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
                     {/* Logo & Slogan */}
                     <div className="flex flex-col items-center md:items-start text-center md:text-left gap-2">
-                        <img src="/images/voica-logo.png" alt="VOICA" className="h-9 w-auto brightness-0 invert" />
+                        <img src="/images/voica-logo-wordmark.png" alt="VOICA" className="h-9 w-auto brightness-0 invert" />
                         <p className="text-sm text-slate-400 mt-1 max-w-sm">
                             Pencatatan keuangan yang lebih mudah melalui suara.
                         </p>
